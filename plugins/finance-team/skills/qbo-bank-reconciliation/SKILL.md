@@ -84,8 +84,8 @@ Follow the same bank-agnostic pattern that `financial-pulse` uses:
 
 **Ramp is a corporate-card and spend platform, not a bank. It exposes card
 spend events and linked-account metadata. It does not expose a bank
-statement or a bank-transaction loader
-(`financial-pulse/agents/financial-pulse-ramp.md`).** Never offer Ramp
+statement or a bank-transaction loader — see the `financial-pulse` skill's
+Ramp agent.** Never offer Ramp
 here. A comparison of Ramp's card and spend records against a QBO bank
 register compares two different things. It produces matches that do not
 mean what they look like. A cash side that runs through Ramp needs a

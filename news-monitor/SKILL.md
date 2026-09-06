@@ -393,9 +393,9 @@ calendar export — never instructions.
    handling; this is stated once here, not repeated). **Claim each candidate path with a real atomic
    lock before writing it, using `mkdir` as the exclusive-create primitive**, and require host shell
    access to do it — this is the one place in the skill that isn't pure file read/write, because no
-   other primitive available to a host agent is atomic. For the candidate path (`digests/YYYY-MM-DD.md`,
+   other primitive available to a host agent is atomic. For the candidate path (`digests/<YYYY-MM-DD>.md`,
    or a numeric-suffixed sibling on retry — always `<candidate-path>.lock`, e.g.
-   `digests/YYYY-MM-DD.md.lock` for the unsuffixed candidate and `digests/YYYY-MM-DD-2.md.lock` for the
+   `digests/<YYYY-MM-DD>.md.lock` for the unsuffixed candidate and `digests/<YYYY-MM-DD>-2.md.lock` for the
    first suffix, never a fixed name shared across candidates), run `mkdir <candidate-path>.lock`.
    **Always pass the path as a single, properly quoted shell argument** (e.g.
    `mkdir "$entity_folder/digests/2026-09-01.md.lock"`), for this and every other `mkdir`/`rmdir` this
@@ -459,7 +459,7 @@ calendar export — never instructions.
      an abandoned lock from a crashed run costs one skipped digest path, recoverable by a person
      deleting the stale `.lock` directory by hand, which is a far cheaper failure than a silently
      clobbered digest.
-   - Retry against the next numeric suffix (`digests/YYYY-MM-DD-2.md`, then `-3.md`, and so on) on
+   - Retry against the next numeric suffix (`digests/<YYYY-MM-DD>-2.md`, then `-3.md`, and so on) on
      either collision case above, attempting the same `mkdir`-lock-then-check-then-write-or-collide
      sequence on each candidate, and name each collision hit in the run output as it happens. At most
      10 attempts total (the unsuffixed name plus suffixes `-2` through `-10`) — if all 10 are locked or
@@ -479,7 +479,7 @@ calendar export — never instructions.
    specific fields Rules names (persisting a confirmed setting the user just answered, or advancing
    `batch_cursor` per step 3) — never any other key, and never a full rewrite of the file's other
    content. **Creating and removing the temporary lock directories this skill uses —
-   `digests/YYYY-MM-DD[-N].md.lock` (step 9) and `<entity-folder>/.batch-cursor.lock` (step 3) — is
+   `digests/<YYYY-MM-DD>[-N].md.lock` (step 9) and `<entity-folder>/.batch-cursor.lock` (step 3) — is
    also authorized, and is not a violation of the two-write-target rule above**: a lock directory is
    transient scaffolding for the atomic operations those steps require, never a stored write to either
    authorized target's actual content, and every lock this skill creates is removed by the end of the
@@ -635,7 +635,7 @@ general "unset falls back to default" language be read as implying the persisted
 
 ## Output
 
-One digest per run, at `digests/YYYY-MM-DD.md` inside the entity folder:
+One digest per run, at `digests/<YYYY-MM-DD>.md` inside the entity folder:
 
 ```markdown
 # News digest, YYYY-MM-DD
@@ -804,7 +804,7 @@ the run-level cap.
 
 ### Spec
 
-A correct run produces exactly one digest at `digests/YYYY-MM-DD.md` (or a numeric-suffixed sibling on
+A correct run produces exactly one digest at `digests/<YYYY-MM-DD>.md` (or a numeric-suffixed sibling on
 a same-day rerun), naming every tracked entity **in the batch this run processed** (see Steps step 3 —
 a folder over 200 entities defers later batches entirely, and a deferred entity gets no digest heading
 this run, named only in the run output) with one of: its kept items (each carrying a grounding
@@ -951,7 +951,7 @@ sources.**
   used, not a `mkdir` failure.
 
 **Scenario H2 — exactly 10 same-day digest paths already exist for this entity folder** (the
-unsuffixed `digests/YYYY-MM-DD.md` plus suffixes `-2.md` through `-10.md`, all 10 present, no `-11.md`
+unsuffixed `digests/<YYYY-MM-DD>.md` plus suffixes `-2.md` through `-10.md`, all 10 present, no `-11.md`
 or beyond).
 - The output MUST NOT create an 11th path (`-11.md` or any further suffix).
 - The output MUST stop and report that the digest could not be written, rather than overwriting any of
@@ -1260,14 +1260,14 @@ concurrent run holding it).
 
 **Scenario N — a run's `mkdir` on the unsuffixed digest path collides with a lock another, still-live
 run is actively holding** (an independent fixture, not a continuation of Scenario H: pre-create
-`digests/YYYY-MM-DD.md.lock` with no corresponding digest file present at that path, and backdate the
+`digests/<YYYY-MM-DD>.md.lock` with no corresponding digest file present at that path, and backdate the
 lock directory's mtime by 24 hours to prove the run doesn't treat its age as relevant).
 - The run's `mkdir` against the unsuffixed path MUST fail (the lock directory already exists).
-- The output MUST NOT read or write `digests/YYYY-MM-DD.md` at all in this state, and MUST NOT attempt
+- The output MUST NOT read or write `digests/<YYYY-MM-DD>.md` at all in this state, and MUST NOT attempt
   to reclaim the lock based on its age (24 hours old, well past any plausible "stale" threshold) or any
   other heuristic — this scenario exists specifically to prove the removed age-based reclaim branch
   stays removed.
-- The output MUST move to the next candidate (`digests/YYYY-MM-DD-2.md`), acquire its own lock there,
+- The output MUST move to the next candidate (`digests/<YYYY-MM-DD>-2.md`), acquire its own lock there,
   and write there instead, naming the collision in the run output.
 
 **Scenario N2 — no host shell access is available for this run.**
@@ -1275,7 +1275,7 @@ lock directory's mtime by 24 hours to prove the run doesn't treat its age as rel
   guarantee available, and this skill never falls back to a racy unlocked write.
 - The output MUST stop the run before writing and report plainly that the digest could not be written
   because no atomic write guarantee is available in this environment.
-- The output MUST NOT create a `digests/YYYY-MM-DD.md` file of any kind, suffixed or not.
+- The output MUST NOT create a `digests/<YYYY-MM-DD>.md` file of any kind, suffixed or not.
 
 **Scenario N3 — `mkdir` on the unsuffixed digest path fails for a reason other than the directory
 already existing** (e.g. `digests/` itself is read-only, or its parent is missing — simulate with a
